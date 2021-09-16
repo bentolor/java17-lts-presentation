@@ -1,0 +1,1429 @@
+= Unter der Haube: Deep Dive 4 – Die wichtigsten Neuerungen seit Java 11
+:author: Benjamin Schmid @bentolor <ben@tolor.de>
+:date: 2021-09-14
+:icons: font
+:revealjs_customtheme: css/sky.css
+//:revealjs_autoSlide: 5000
+:revealjs_history: true
+:revealjs_fragmentInURL: true
+//:revealjs_viewDistance: 10
+:revealjs_fragments: false
+:revealjs_width: 1408
+:revealjs_height: 792
+:revealjs_controls: true
+:revealjs_controlsLayout: edges
+:revealjs_controlsTutorial: true
+:revealjs_slideNumber: c/t
+:revealjs_showSlideNumber: speaker
+:revealjs_autoPlayMedia: true
+:revealjs_defaultTiming: 49
+//:revealjs_transitionSpeed: fast
+//:revealjs_parallaxBackgroundImage: images/background-landscape-light-orange.jpg
+//:revealjs_parallaxBackgroundSize: 4936px 2092px
+:revealjs_parallaxBackgroundImage: images/what-s-under-the-hood-1560145-light.jpg
+:revealjs_parallaxBackgroundSize: 5000px 3376px
+:customcss: css/presentation.css
+:imagesdir: images
+:source-highlighter: highlightjs
+:highlightjs-theme: css/atom-one-light.css
+// we want local served font-awesome fonts
+:iconfont-remote!:
+:iconfont-name: fonts/fontawesome/css/all
+
+[.notes]
+--
+Vielen Dank Melanie…
+
+Ja – hallo & Herzlich Willkommen… ich bin … und TA & Manager R&I bei eXXcellent solutions und dort somit erster Ansprechpartner in allen meth. & tech. Fragestellung. Mein Herz schlägt für die innovative aber zugleich solide Softwareentwicklung Softent im Bereich rund um Java & Web.
+
+Java 17 bringt wirklich **viele** _spannende_ & _solide_ Verbesserungen mit. Daher freue ich mich besonders, dass wir diese dank der LTS-Version diese nun auch breiter unseren Projektpraxis nutzen können.
+
+Die vorangegangenen Sessions bei Euch sicher schon einigen Appetit anregen können. _Ich_ freue mich nun, zusammen im vierten Deep-Dive nun ein bisschen den Blick unter die Haube zu wagen!
+
+… und ich denke die Vorfreude lohnt sich, denn z.B. 3  Dinge die Java 17 LTS unter der Haube mit sich bringt sind…
+--
+
+// [.lightbg, background-image="327-chevy-engine-1542516.jpg",background-opacity="0.9"]
+//== 3 Motor-Upgrades
+//[decent]#… auf die ich mich in Java 17 freue#
+
+[.lightbg.forcebottom,background-video="time-passes-by-so-quickly.mp4",background-video-loop="true",background-opacity="1"]
+== Mehr _Schwuppidizität_
+[.notes]
+--
+… durch _niedriglatente GCs_ und schnellere JVM Start zur _Class-Data Sharing_
+--
+
+
+[.lightbg.forcebottom,background-video="pexels-cottonbro-9293441.mp4",background-video-loop="true",background-opacity="1"]
+=== Mehr Durchblick
+[.notes]
+--
+…mit **tiefgreifenden Diagnostikmittel**, allen voran dem JDK Flight Recorder und dem JDK Mission Control…
+--
+
+
+[.lightbg.forcetop,background-video="pexels-koolshooters-7327408.mp4",background-video-loop="true",background-opacity="1"]
+=== Mehr Hilfestellung
+[.notes]
+--
+… z.B. durch _sprechende Nullpointer-Exceptions_, besseren Fehlermeldungen und bessere JVM Defaults
+--
+
+
+
+
+// [.lightbg,background-video="coffee-beans.mp4",background-video-loop="true",background-opacity="0.7"]
+// == Java 12--17 in a nutshell
+
+// === v9 (huge…)
+// * *Java module (Jigsaw)*
+// * *API Improvements:* _Project Coin Milling_, Stream, …
+// * *Unified JVM & Java Logging*, …
+// //  Reflection, Date, Concurrency, …
+// // * _Deprecated:_ `finalize()`
+// * *Performance*
+// * _Tools:_ `jshell` `jlink` `-release`, Multi-Release JARs
+// //* _New platforms:_ *AArch64, s390x, Arm32/Arm64*
+
+// [decent]#2017-03-23, icon:exclamation-circle[] http://openjdk.java.net/projects/jdk9/[*91* JEPs]#
+
+// === Recap
+// > Auch Blick unter die Haube lohnt sich; manche transaprent & für alle; manche muss man sich erschließen
+// [.notes]
+// --
+// * Viele Änderungen unter der Haube
+// * Einige auch nicht so präsent, z.B. Shennandoah GC
+// * Blick unter die "Haube", also JVM, Tools und JVM Internals
+// --
+
+
+[.lightbg,background-video= "relaxing.mp4",options="loop,muted",background-opacity="0.5"]
+== Agenda
+. Garbage Collectoren
+. Class-Data Sharing
+. Java Flight Recorder
+. Foreign Function & Memory
+. Tooling
+. Details & Maintenance
+
+
+
+// == Vector API
+// https://openjdk.java.net/jeps/414
+
+// [.notes]
+// --
+// ntegrated into JDK 16 as an incubating API, the platform-agnostic vector API will be incubated again in JDK 17, providing a mechanism to express vector computations that reliably compile at run time to optimal vector instructions on supported CPU architectures. This achieves better performance than equivalent scalar computations. In JDK 17, the vector API has been enhanced for performance and implementation, including enhancements to translate byte vectors to and from boolean arrays.
+// --
+
+
+[.lightbg,background-video= "garbage-collecting.mp4",options="loop,muted",background-opacity="0.9"]
+== Garbage Collectoren
+[.notes]
+--
+. Kommen wir zum ersten Theme: GCs
+. Wichtiger Teil von Schwuppdizität
+. Zentral: Viele Verbesserung +2 neue GC Implementierungen
+. … aber ein blick auf: Was ist passiert?
+--
+
+
+
+[.degrade.x-small]
+=== Timeline
+[width=60%,grid=vertical,frame=none,cols="^1e,5"]
+|===
+|11 | [decent]#icon:vial[]# ZGC Experimental
+|12 | [decent]#icon:vial[]# Shenandoah Experimental +
+      [decent]#icon:compress-alt[] G1 Uncommit Memory# +
+      [decent]#icon:undo[] ZGC Class Unloading#
+|13 | [decent]#icon:compress-alt[] ZGC Uncommit Memory#
+|14 | icon:windows[] & icon:apple[] ZGC Support +
+      icon:trash[] CMS Removal +
+      [decent]#icon:bomb[] ParalellOldGC Deprecation#
+|15 | icon:award[] **Shenandoah** Production-ready +
+      icon:award[] **ZGC** Production-ready
+|16 | [decent]#icon:chart-line[] ZGC Improvements#
+|===
+
+
+
+=== Die neue Generation der Low-Latency GCs
+
+// .Gemeinsamkeiten ZGC & Shennadoah
+* Moderne Architekturen: _Multi-Core_ & _TB RAM_
+* _kurze GC Pausen_ im ms-Bereich +
+  → erkauft **Responsiveness** gegen _Durchsatz_
+* (fast) vollständig _parallel & nebenläufig_ +
+  Pausen unabhängig von Größe des Heaps
+* Unterstützen _Class Unloading_ & _Uncommit Memory_
+* Einfach & Konfigurationsarm
+
+[.notes]
+--
+* _Multi-Core_ & _TB RAM_
+* Ziel ist immer **niedrige Latenz**
+* bei G1 & Co gerne mal 200~500ms; hier: 1-10ms;
+* Schnellere Reaktion geringere Gesamtdurchsatz & Damit längere Laufzeit
+--
+
+
+
+=== Z Garbage Collector (ZGC)
+
+[col2]
+--
+image:in_place_relocation2.svg[width=600,role=plain]
+
+`-XX:+UseZGC`
+--
+
+[col2.small]
+--
+_„A scalable low-latency garbage collector“_
+
+.Ziele
+* GC Pausen kleiner [deleted]#10ms# **1ms**
+* Durchsatz max. -15% gegenüber G1
+* Heapgrößen  8MB – **16TB**
+* Einfaches Tuning
+
+[emphasize]#_Colored Pointers & Load Barriers_ +
+→ Object Relocation#
+--
+
+[.refs]
+--
+https://wiki.openjdk.java.net/display/zgc/Main
+--
+
+[.notes]
+--
+* Aus dem Hause _Oracle_; ehemals kommerziell
+* JDK seit 11; Production since JDK 15; dann auch mit Linux/Win/macOS
+* Ziele …
+* Pausen unabhängig von Heap **und** Live- & Root-Set
+* Eigenschaften: Parallel, Regionen-basiert, ohne Generation, _Compacting_ und _NUMA-aware_
+** Konzept: _Colored pointers_ plus _Load barriers_ → Relocation
+* "Schwuppizität" zum Preis von CPU und Gesamtlaufzeit
+--
+
+[.left]
+=== Shennadoah GC
+
+_„A low-pause-time garbage collector by concurrent evacuation work“_ +
+
+[col2.small]
+--
+* ZGC sehr ähnlich _Brooks (Forward) Pointers_
+
+* Bietet verschieden Modi & Heuristic-Profile:
+  _adaptive, static, compact, aggressive_
+
+* Beil zahlreichen Weak References → ZGC
+
+--
+
+[col2.small]
+--
+* **Red Hat** Kind → andere Service Offerings
+
+* **Backports** für JDK 8 & 11; auch **32-bit**
+
+* ggü. ZGC: abhängig von Root- & Live-Set
+
+[x-small]#`-XX:+UseShenandoahGC`#
+--
+
+[.center]
+
+image:shenandoah-gc-cycle.png[role=plain, width=1000]
+
+
+[.refs]
+--
+https://wiki.openjdk.java.net/display/shenandoah
+--
+
+[.notes]
+--
+* Name nach US Nationalpark
+* von Red Hat → auch Backports & Architekturen (z.B. ARM32)
+* seit 2013 und seit v12 im JDK; seit JDK15 Production
+* Pausen steigen mit Root Set / Live Set
+--
+
+
+
+
+[%notitle,background-image="gc-performance-transparent.png",background-size="contain"]
+=== Performance G1 vs. ZGC vs. Shenandoah
+[.notes]
+--
+* Arbeitsbereich ist links! Rechts = Überlast
+* S & Z : Vergleichbare, gegenüber G1 deutlich niederige Latenzen
+* Verhalten bei wachsender Last: Hier scheint ZGC irgendwann den Punkt zu erreichen wo es nicht mehr mithalten kann; bei Shenandoah früher Latenz
+* Man sieht klar: G1 ist Tradeoff zwischen Latenz & Durchsatz → auch bei höhere Durchsatz stabil
+--
+
+
+
+
+
+
+
+
+
+
+[.degrade]
+=== GC in der Übersicht
+
+[.x-small,cols=">1e,^2,7",grid="horizontal",frame="none"]
+|===
+|GC | Optimiert für… | Kommentar
+
+| G1
+| Balance
+| Üblicher Default. Überwiegend Nebenläufig. Zielt auf Balance von Durchsatz & Latenz. Außreißer-Pausen bis 250~800ms. Guter Durchsatz. Häppchenweise Pausen an Zeitbudget orientiert.
+
+| Shenandoah
+| Latenz
+| Auch verfügbar für JDK8, JDK11 und 32-bit.
+
+| ZGC
+| Latenz
+| besser für `WeakRef`; Pausen auch unabhängig Live- und Root-Set
+
+| ParallelGC
+| Durchsatz
+| Parallel & mehrere Threads. Hoher Durchsatz. +
+  Typische Pausen ~300ms abhängig von Heap-Größe.
+
+| SerialGC
+| Speicherbedarf
+| Single-Threaded. Empfiehlt sich nur für Heaps ~100MB.
+
+| Zing/Azul
+| Pauseless
+| Nicht im OpenJDK; nur kommerziell verfügbar
+
+|===
+
+
+
+
+[.degrade]
+=== Überblick Änderungen GC's
+
+[col3-c.x-small]
+--
+.ZGC
+* Concurrent Class Unloading [version]#12#
+* Uncommit Unused Memory [jep]#https://openjdk.java.net/jeps/351[JEP 351]# [version]#13#
+* `-XXSoftMaxHeapSize` Flag [version]#13#
+* Max. Heap Size Increased to 16TB [version]#13#
+* ZGC on macOS [jep]#https://openjdk.java.net/jeps/364[JEP 364]# [version]#14#
+* ZGC on Windows [jep]#https://openjdk.java.net/jeps/365[JEP 365]# [version]#14#
+* ZGC Production-Ready [jep]#https://openjdk.java.net/jeps/377[JEP 377]# [version]#15#
+* Concurrent Stack Processing [jep]#https://openjdk.java.net/jeps/376[JEP 376]# [version]#16#
+
+.Epsilon
+* Epsilon Bug TLABs extension [version]#14#
+* Epsilon warns about Xms/Xmx/… [version]#14#
+--
+[col3-l.x-small]
+--
+
+.G1
+* [.step.highlight-current-blue]#OldGen on NV-DIMM# [version]#12#
+* [.step.highlight-current-blue]#Uncommit Memory# [version]#12#
+* Improved Sparse PRT Ergonomics [version]#13#
+* NUMA-Aware Memory Alloc. [jep]#https://openjdk.java.net/jeps/354[JEP 354]# [version]#14#
+* Improved Heap Region Ergonomics [version]#15#
+* Concurrently Uncommit Memory [version]#16#
+
+.Shenandoah
+* Shenandoah (Experimental)  [jep]#https://openjdk.java.net/jeps/189[JEP 189]# [version]#12#
+* Self-fixing barriers [version]#14#
+* Async. object/region pinning [version]#14#
+* Concurrent class unloading [version]#14#
+* Arraycopy improvements [version]#14#
+* Shenandoah Production-Ready [jep]#https://openjdk.java.net/jeps/379[JEP 379]# [version]#15#
+
+--
+[col3-r.x-small]
+--
+
+.Bugfixes
+* Disable large pages on Windows [version]#15#
+* Disable NUMA Interleaving on Win.[version]#15#
+
+
+.Legacy
+* [.step.highlight-current-blue]#ParallelGC Improvements# [version]#14#
+* Obsolete [x-small]#`-XXUseAdaptiveGCBoundary`# [version]#15#
+* Enable Parallel Ref. Processing [version]#17#
+* SerialGC Improved young report [version]#13#
+* ParalellOldGC: Deprecate [jep]#https://openjdk.java.net/jeps/366[JEP 366]# [version]#14#
+* [.step.highlight-current-blue]#CMS: Remove CMS GC# [jep]#https://openjdk.java.net/jeps/363[JEP 363]# [version]#14#
+
+icon:exclamation-triangle[] Many, many, more…
+--
+
+[.notes]
+--
+. Old Gen auf alternativen Memory Geräten
+. G1 kann wieder Speicher freigeben
+. Auch ParallelGC erfährt Verbesserungen
+. CMS wurde entfernt
+. → Viel mehr; teils nicht in den Release Notes
+--
+
+=== TL;DR Tipps für den GC
+
+[%step.statement.tgap]
+icon:level-up-alt[] Upgrade lohnt sich!
+
+[%step.statement]
+icon:graduation-cap[] Probieren geht über Studieren!
+
+[%step.statement]
+icon:trash-alt[] Mut zum (probeweisen) Wegwerfen: +
+Alte Tuning-Parameter
+
+[%step.statement]
+icon:stopwatch[] Latenz wichtig? → ZGC oder Shenandoah
+
+
+[.refs]
+--
+https://blogs.oracle.com/javamagazine/understanding-the-jdks-new-superfast-garbage-collectors
+https://docs.oracle.com/en/java/javase/17/gctuning/available-collectors.html
+--
+
+
+
+
+
+
+
+
+[.lightbg,background-video= "sharing-pizza.mp4",options="loop,muted",background-opacity="1"]
+== Class Data Sharing
+
+
+=== Class Data-Sharing in a Nutshell
+
+Class Data-Sharing::
+Reduziert Startzeiten & Speicherbedarf neuer JVMs
+durch `.jsa` Archiv mit Metadaten der Klassen.
++
+→ Klassen liegen vorgeparsed _direkt für die JVM verwendbar_ vor. Das Archiv kann _read-only_ eingebunden werden, was dem OS _Caching_ & _Sharing_ erlaubt.
++
+**Achtung:** Archive sind JVM Plattform- und Versionspezifisch!
+
+[.fragment.left]
+Application Class-Data Sharing (AppCDS)::
+Erlaubt zusätzlich Applikations-Klassen in das CDS aufzunehmen.
+
+
+
+=== Neuerungen im Bereich CDS
+
+[.fragment.tgap]
+Default CDS Archive [version]#12# [jep]#https://openjdk.java.net/jeps/341[JEP 341]#::
+JVM liefert nun per Default ein `classes.jsa` CDS-Archiv mit aus, welches ein Subset der häufigsten JDK-Klassen umfasst.
+
+[.fragment.tgap]
+Dynamic CDS Archive [version]#13# [jep]#https://openjdk.java.net/jeps/350[JEP 350]#::
+Vereinfacht erheblich die Erstellung eigener AppCDS Archive durch automatische Auswahl und Archiverzeugung beim beenden der Java-Applikation.
+
+
+=== AppCDS Archiverstellung
+
+.Bisher: Erstellung über Liste [version]#11#
+[source.compact,shell]
+----
+$ java -Xshare:off  -XX:DumpLoadedClassList=myclasses.txt -cp myapp.jar MyApp
+
+$ java -Xshare:dump -XX:SharedArchiveFile=myapp.jsa \
+       -XX:SharedClassListFile=myclasses.txt -cp myapp.jar
+----
+
+[.fragment]
+.NEU: Automatische Erstellung [version]#13#
+[source.compact,shell]
+----
+$ java -XX:ArchiveClassesAtExit=myapp.jsa -cp myapp.jar MyApp
+----
+
+[.fragment]
+.Nutzung des AppCDS-Archives
+[source.compact,shell]
+----
+$ java -XX:SharedArchiveFile=myapp.jsa -cp myapp.jar MyApp
+----
+
+
+
+[.notes]
+--
+* Bedenken: Nur die Klassen die die JVM während des Lauf lädt.
+--
+
+
+
+[%notitle]
+=== AppCDS Gewinne
+image::app_cds_time_to_first_response.png[AppCDS Startup Times,height=700]
+[.refs]
+--
+https://www.morling.dev/blog/building-class-data-sharing-archives-with-apache-maven/
+--
+[.notes]
+--
+* → Gunnar Morling
+* Teils bis zu 40% Reduktion in Startup-Times
+--
+
+[%notitle.degrade]
+=== AppCDS kombiniert mit `jlink`
+.AppCDS kombiniert mit `jlink`
+{sp}
+
+image::jlink_app_cds_image_size_and_startup_times.png[AppCDS Startup Times,height=640]
+
+[.notes]
+--
+* Noch mehr Potential mit Kombination von `jlink`
+** Wir erinnern uns: `jlink` Erlaubt die Auswahl einer Teilmenge von Modules für ein custom runtime images
+** Nur benötigte Module → weniger Klassen/Balast
+* Ergebnis
+. Kleinere Images
+. Mit AppCD deutlich schneller: 1,8s → 0,8s
+* Nachteil: Komplexität des Gesamtbuilds
+--
+
+
+[.lightbg.forcebottom,background-video= "flight-cockpit.mp4",options="loop,muted",background-opacity="1"]
+== JDK Flight Recorder (JFR)
+
+[.notes]
+--
+Kommen wir zu "mehr Druchblick" mit JavaFR & JMC
+--
+
+[.degrade]
+=== JDK Flight Recorder (JFR) [jep]#https://openjdk.java.net/jeps/328[JEP 328]#
+* OS, JVM, JDK & App Diagnostik
+* extrem geringer Overhead (~1%)
+* built-in & jederzeit aktivierbar
+* always-on möglich → Timemachine
+
+→ [.step.highlight-current-blue]#icon:cogs[] **Production** Profiling & Monitoring#
+
+[.decent.x-small]
+
+
+[.notes]
+--
+* Ehemals kommerzielles JVM Addon "Java Flight Recorder"
+* seit Java 11 OpenJDK Bestandteil
+* Aktivierbar für neue und *bereits laufende* Java-Instanzen
+* Zielmetrik: Weniger als 1% Overhead → no measurable impact on the running application →  klare Ausrichtung für Produktionsverwendung
+* Built by the JVM/JDK people
+** → access to data already collected, more accurate, faster
+** Safe and reliable in production
+* always on  →  Time machine – just dump the recording data when a problem occurs, and see what the runtime was up to before, up to, and right after the problem occurred.
+* Even on JVM crash → JFR data avail in dump
+
+JDK Mission Control also contains other tools, such as a JMX Console, and HPROF-dump analyzer and more.
+--
+
+
+
+
+[%notitle]
+=== JFR Demo
+
+[col3-lc]
+--
+video::../images/jfr.mp4[jfr-screen.png, height=720,options=nocontrols,background-color="white"]
+--
+
+[col3-r.left.small]
+--
+**Flight Recorder Demo**
+
+.Prozess identifizieren
+  jcmd
+
+.Recording
+  jcmd <pid> JFR.start
+  jcmd <pid> JFR.dump \
+    filename=record.jfr
+
+[.xx-small.decent]
+Optionen: `filename`, `delay`, `dumponexit`, `duration`, `maxage`, `maxsize`, …
+
+
+.Analysieren
+  jfr print record.jfr
+  jfr print \
+     --events CPULoad \
+     --json record.jfr
+  jfr summary record.jfr
+--
+
+[.notes]
+--
+. PID identifizieren
+. JFR starten (& konfigurieren)
+. Optionen → bei Crash, delay, laufzeit, Ringbuffer-Parameter
+. Events sichten
+.. Filter nach Event & Kategorie
+.. → Export JSON mgl
+.. Grobe Summe
+
+Grobe Orientierung ohne ext. mittel; für mehr Einsichten brauchts aber Tools.
+--
+
+
+[%notitle,background-video="jmc.mp4",background-size="contain"]
+=== JDK Mission Control (JMC)
+[.refs]
+--
+https://openjdk.java.net/projects/jmc/8/
+--
+
+[.notes]
+--
+* Ex-Payware "Java F…"; seit v11 Open "JDK F…"
+* 8.1+ für JFR Events von JDK17 (Heap)
+* JMX Live Status / Properties
+* Hilfreich: Automatisierte Alert bei Grenzwerte
+* Aber auch: JFR dumps laden bzw. live tracen
+* Erlaubt grobe Kategorieeinstellung
+* … und per einzelnem JFR Event
+--
+
+
+=== JFR Event Streaming [jep]#https://openjdk.java.net/jeps/349[JEP 349]# [version]#14# [version]#16#
+
+[%notitle,transition="none",background-image="jfrstreaming0.png",background-size="contain",background-color="white"]
+=== JDK11
+[.notes]
+--
+* Vor JDK14: Start JFR → Dump (File/JMX) → Analyze.
+* **Gut für Profiling, schlecht für Continuous Monitoring**
+--
+
+[%notitle,transition="none",background-image="jfrstreaming1.png",background-size="contain",background-color="white"]
+=== JDK14
+[.notes]
+--
+* Mit Java 14: JFR Event Streaming:
+* API anbieten um (kontinuierlich) Events des JFR Disk Repo lesen zu können
+* Ziel: **Trivial kontinuierlich JFR Events monitoren** und darauf **reagieren können**
+--
+
+[%notitle,transition="none",background-image="jfrstreaming2.png",background-size="contain",background-color="white"]
+=== JDK16
+[.notes]
+--
+* Neu in JDK 16:
+** Erlaubt auch **Remote Streaming**
+** Neues, leichtgewichtiges `jdk.ObjectAllocationSample` **default on**
+* GraalVM ab 21.2 unterstützt ebenfalls JFR
+--
+
+=== JFR Event Streaming API: Beispiel
+
+Reported sekündlich CPU Usage und aktive Locks länger als 10ms:
+
+[source,java]
+----
+try (var rs = new RecordingStream()) {
+  rs.enable("jdk.CPULoad").withPeriod(Duration.ofSeconds(1));
+  rs.enable("jdk.JavaMonitorEnter").withThreshold(Duration.ofMillis(10));
+
+  rs.onEvent("jdk.CPULoad", event -> {
+    System.out.println(event.getFloat("machineTotal"));
+  });
+  rs.onEvent("jdk.JavaMonitorEnter", event -> {
+    System.out.println(event.getClass("monitorClass"));
+  });
+
+  rs.start(); // Blockierender Aufruf, bis Stream endet/geschlossen wird
+  // rs.startAsync(); Alternative im separaten Thread
+}
+----
+
+[.refs]
+--
+JFR Eventtypen: https://bestsolution-at.github.io/jfr-doc/
+--
+
+
+[.small.degrade]
+=== Zugriffsmöglichkeiten
+
+[source.col2,java]
+.Passiv, eigener Prozess
+----
+EventStream.openRepository()) {…}
+----
+
+[source.col2,java]
+.Passiv, fremder Prozess
+----
+EventStream.openRepository(Path.of("…")))
+----
+
+[source,java]
+.Aktiv, eigener Prozess
+----
+try (var stream = new RecordingStream()) { … }
+----
+
+
+[source,java]
+.Aktiv, fremder Prozess (Remote)
+----
+String url = "service:jmx:rmi:///jndi/rmi://myhost.de:7091/jmxrmi";
+JMXConnector c = JMXConnectorFactory.connect(new JMXServiceURL(url));
+MBeanServerConnection conn = c.getMBeanServerConnection();
+
+try (RemoteRecordingStream stream = new RemoteRecordingStream(conn)) { … }
+----
+
+
+
+[.small.degrade]
+=== Eigene JFR Events
+
+[col2]
+--
+[source,java]
+.Event definieren
+----
+import jdk.jfr.*;
+
+@Name("de.bentolor.ButtonPressed")
+@Label("Button Pressed")
+@StackTrace(false)
+public class ButtonEvent extends Event {
+    @Label("Button name")
+    public String name;
+
+    @Label("Source")
+    public String trigger;
+
+    @Label("Number of Bounces")
+    @DataAmount
+    public int bounces;
+
+    @Label("Has timeouted")
+    public boolean timeouted;
+}
+----
+--
+[%step.col2]
+--
+.Event füttern & auslösen
+[source,java]
+----
+ButtonEvent evt = new ButtonEvent();
+if(evt.isEnabled()) {
+    evt.name = "Button 1";
+    evt.trigger = "Keyboard";
+    evt.begin();
+}
+
+// doSomething()
+
+if(evt.isEnabled()) {
+    evt.end();
+    evt.timeouted = false;
+    evt.bounces = 3;
+    evt.commit();
+}
+----
+--
+
+
+[.degrade]
+=== Weitere Anwendungsfälle
+
+[.small.col2]
+Unit- & Performance-Testing::
+Annahmen zum Verhalten von API, JVM & Co. in Testcases sichern. +
+ +
+[decent]#Unterstützende Frameworks z.B. https://github.com/moditect/jfrunit[JfrUnit] oder https://github.com/quick-perf/quickperf[QuickPerf]#
+
+
+[.small.col2]
+Timeshift-Analyse::
+Recording mitlaufen lassen und bei Performance-Problemen rückwirkend seit Problemstartpunkt aus dem JFR Event Repository extrahieren & analysieren (_„Timeshift“_)
+
+
+
+
+
+[.lightbg.forcetop,background-video= "pexels-cottonbro-7319201.mp4",options="loop,muted",background-opacity="1"]
+== Foreign Function & Memory API [preview]#Incubator#
+// [jep]#https://openjdk.java.net/jeps/412[JEP 412]#
+
+
+
+[.degrade]
+=== Exkurs: Preview features [preview]#Preview# [jep]#https://openjdk.java.net/jeps/12[JEP 12]#
+Auslieferung experimenteller Sprach- und JVM-Features, +
+oft in Iterationen, zur Förderung von frühem Community Feedback. +
+[.decent.x-small]#_z.B.: Pattern Matching, Switch Expression, Text Blocks, Records, Sealed Classes_#
+
+[.col2]
+--
+[source,bash]
+.Unlock Compilation
+----
+javac --enable-preview …
+----
+--
+[.col2]
+--
+[source,bash]
+.Unlock Execution
+----
+java --enable-preview …
+----
+--
+[.clear]
+--
+{sp} +
+[.decent.small]#Keine Cross-compilation mittels `--release xx` möglich!#
+--
+[.notes]
+--
+* Forces awareness by using toggle switch on _compiling and running_
+* Typisch mehrere Iterationen (z.B. `switch`-Statement)
+* Stabilisierung auf LTS; in 17 LTS daher kein Preview Feature
+--
+
+
+[.degrade]
+=== Exkurs: Incubator Modules [preview]#Incubator# [jep]#https://openjdk.java.net/jeps/11[JEP 11]#
+Analog _Preview Features_ für nicht-finale APIs und Tools +
+
+[source,bash]
+----
+javac --add-modules jdk.incubator.foo …
+java  --add-modules jdk.incubator.foo …
+----
+
+[.decent.x-small]#_z.B.: HTTP/2 Client, Packaging Tool, …_#
+// Vector API, Foreign Function & Memory API
+
+
+[.notes]
+--
+Interessanterweise 2 "Incubator" in der LTS Version: _"Vector API"_ und _"Foreign Function & Memory API"_
+--
+
+
+
+[.degrade]
+=== Retro: Java Native Interface (JNI)
+
+[.plain]
+image::jni-process.png[Java Native Interface Process, 1000, float="left"]
+
+[.small]
+--
+* 26 Jahre alt
+* erfordert `.c` & `.h`-Files
+* mehrstufiger Prozess: +
+  kleinteilig & brüchig
+
+↓
+
+sehr verworren
+
+--
+[.notes]
+--
+bildquelle: https://developers.redhat.com/blog/2016/11/03/eclipse-for-jni-development-and-debugging-on-linux-java-and-c#general_overview_of_jni_compilation_and_the_eclipse_project
+--
+
+
+
+
+=== Motivation Project Panama [preview]#Incubator# [jep]#https://openjdk.java.net/jeps/412[JEP 412]#
+
+Starke Drittbibliotheken (z.B. ML/AI) mit dynamischer Entwicklung +
+[decent]#_Tensorflow_, _OpenSSL_, _libodium_, …#
+
+[.x-small.fragment.tgap]
+> Introduce an API by which Java programs can interoperate with code and
+data outside of the Java runtime […] without the brittleness and danger of JNI.
+
+[.fragment.tgap]
+**Ziele:** _Einfachheit – Performance – Sicherheit_
+
+//  https://www.youtube.com/watch?v=B8k9QGvPxC0
+[.notes]
+--
+* Motivation: ML → Python Ecosystem → vs. re-implementing
+
+.Ziele
+* Einfachheit → nur Java
+* → hofft auf Tooling
+* Performance: Vergleichbar mit JNI
+* Umschiffen alter Scrhanken wie max 2GB mit ByteBuffer max. 2GB und foreign Memory GC-manages.
+* Sicherheit:  Abkommen von `sun.misc.Unsafe`;
+
+.Historie:
+* Zwei JEPs / APIs: Memory Access API & Foreign Linker API
+* erstmals JDK14, dann 15, 16 und nun zusammengeführt in 17
+--
+
+[.degrade]
+=== Einfacher Funktionsaufruf
+
+[source.small,java]
+----
+import java.lang.invoke.*;
+import jdk.incubator.foreign.*;
+
+class CallPid {
+  public static void main(String... p) throws Throwable {
+    var libSymbol = CLinker.systemLookup().lookup("getpid").get();          <1>
+    var javaSig = MethodType.methodType(long.class);                        <2>
+    var nativeSig = FunctionDescriptor.of(CLinker.C_LONG);                  <3>
+
+    CLinker cABI = CLinker.getInstance();
+    var getpid = cABI.downcallHandle(libSymbol, javaSig, nativeSig);        <4>
+
+    System.out.println((long) getpid.invokeExact());                        <5>
+  }
+}
+----
+<1> adressiertes _Symbol_ – hier via Lookup in den System Libraries
+<2> gewünschte _Java-Signatur_ des Java Foreign Handles
+<3> _Ziel-Signatur_ der aufzurufenden C-Funktion
+<4> Funktionshandle beziehen
+
+[.degrade]
+=== Aufruf mit Pointer (1/2)
+[source,c]
+----
+int crypto_box_seal(unsigned char *c, const unsigned char *m,
+                    unsigned long long mlen, const unsigned char *pk)
+----
+[.decent.xx-small]#…liest Text aus `*m`, Zielschlüssel `*pk` und schreibt
+verschlüsseltes Ergebnis in nativen Speicher `*c`# +
+↓
+[source.fragment,java]
+----
+var cryptoBoxSeal = CLinker.getInstance().downcallHandle(
+        SymbolLookup.loaderLookup().lookup("crypto_box_seal").get(),
+        MethodType.methodType(int.class,
+                              MemoryAddress.class, MemoryAddress.class,
+                              long.class, MemoryAddress.class),
+        FunctionDescriptor.of(C_INT,
+                              C_POINTER,   C_POINTER,
+                              C_LONG_LONG, C_POINTER) );
+----
+
+[.notes]
+--
+* libsodium Funktion
+* erwartet drei Pointer
+** java: `MemoryAddress`
+** C: `C_POINTER`
+--
+
+
+[.small.degrade]
+=== Aufruf mit Pointer (2/2)
+
+.Foreign Heap wird vom GC via `ResourceScope` verwaltet
+[source,java]
+----
+try (var scope = ResourceScope.newConfinedScope()) { … }
+----
+
+[.fragment]
+.String-Konvertierung & Kopie in nativen Heap
+[source,java]
+----
+var plainMsg = CLinker.toCString("abc", scope);
+----
+
+[.fragment]
+.Reservierung Ziel-Speicherbereich
+[source,java]
+----
+var cipherText = scope.allocate(48 + plainMsg.byteSize(), scope);
+var pubKey = scope.allocateArray(C_CHAR, publicKey);
+----
+
+[.fragment]
+.Aufruf & Rückgabe
+[source,java]
+----
+var ret = (int) cryptoBoxSeal.invokeExact( cipherText.address(), plainMsg.address(),
+                                           (long) plainMsg.byteSize(), pubKey.address());
+return cipherText.toByteArray();
+----
+
+[.notes]
+--
+die Frage: Wie mit Java nativen Speicher bekommen?
+
+. Foreign Memory → managed by GC
+. dazu an separates `ResourceScope`-Objekt gebunden
+--
+
+
+
+
+=== Helferlein `jextract`
+
+
+Generiert aus direkt aus `.h`-Dateien passende  API Wrapper +
+als `.class` oder `.java` mit den notwendigen Foreign API-Aufrufen. +
+[.decent.xx-small]#Nicht direkt in JDK 17 enthalten, sondern via Panama EAP JDK Builds (siehe Link).#
+
+
+[source.fragment,shell]
+----
+$ jextract -t de.bentolor /usr/include/unistd.h
+----
+
+[source.fragment,java]
+----
+import de.bentolor.unistd_h;
+
+class CallPid {
+   public static void main(String[] args) {
+      System.out.println( unistd_h.getpid() );
+  }
+}
+----
+
+
+[.notes]
+--
+* Nicht Teil des JDK, separater Download
+* Erzeugt / Generiert den Boiler Code
+* Da große 89MB _LLVM_ Dependency, vermutlich nie JDK Bestandteil
+--
+
+[.refs]
+--
+https://jdk.java.net/panama/[Project Panama Early-Access Builds]
+--
+
+
+[%notitle,background-video="native-python.mp4",background-size="contain",background-color="white"]
+=== `jextract` Demo
+
+=== `jextract` Demo (Transcript)
+
+[source.col2.x-small,bash]
+----
+mkdir hello-python
+cd hello-python
+
+locate Python.h
+
+jextract -t de.bentolor \
+         -l python3.8 \
+         -I /usr/include/python3.8/ \
+         -I /usr/include/ \
+         /usr/include/python3.8/Python.h
+
+joe Schlange.java
+
+java --add-modules jdk.incubator.foreign \
+     --enable-native-access=ALL-UNNAMED \
+     -Djava.library.path=/usr/lib/x86_64-linux-gnu/ \
+     Schlange.java
+
+jextract -t de.bentolor \
+         -l python3.8 \
+         -I /usr/include/python3.8/ \
+         -I /usr/include/ \
+         --source
+         /usr/include/python3.8/Python.h
+
+bat de/bentolor/Python_h.java
+
+bat de/bentolor/Python_h_4.java
+/s int PyRun_S
+----
+
+[source.col2.x-small,java]
+----
+import jdk.incubator.foreign.*;
+import de.bentolor.Python_h;
+
+public class Schlange {
+  public static void main(String[] args) {
+    String script = """
+            print(sum([33, 55, 66]));
+            print('Hello Python 3!')
+            """;
+
+    Python_h.Py_Initialize();
+    try (var scope = ResourceScope.newConfinedScope()) {
+        var str = CLinker.toCString(script, scope);
+        Python_h.PyRun_SimpleStringFlags(
+              str, MemoryAddress.NULL);
+        Python_h.Py_Finalize();
+    }
+  }
+}
+----
+
+// import de.bentolor.unistd_h;
+
+// class CallPid {
+//    public static void main(String[] args) {
+//       System.out.println( unistd_h.getpid() );
+//       System.out.println( ProcessHandle.current().pid() );
+//   }
+// }
+
+
+
+[%notitle]
+=== `jextract` Verwendungsbeispiele
+
+image::jextract-examples.png[https://github.com/sundararajana/panama-jextract-samples,height=640]
+
+https://github.com/sundararajana/panama-jextract-samples
+
+
+
+[.lightbg,background-video="hammer.mp4",background-video-loop="true",background-opacity="0.8"]
+== Tooling
+
+=== `jpackage` [jep]#https://openjdk.java.net/jeps/343[JEP 343]# [jep]#https://openjdk.java.net/jeps/392[JEP 392]#
+
+Werkzeug zum Erstellen & Paketieren eigenständiger Java-Applikationen
+
+[.col2]
+--
+
+.icon:box-open[] Native Installer
+icon:windows[] → `.msi` und `.exe` +
+icon:apple[] → `.pkg` und `.dmg` +
+icon:linux[] → `.deb` und `.rpm` +
+--
+
+[.col2]
+--
+
+.icon:sliders-h[] Konfiguration
+Start-Optionen (JVM/App) +
+Meta-Daten +
+Datei-Assoziationen +
+--
+
+.icon:ban[] Nicht im Scope
+Splash-Screen +
+Auto-Update Mechanismus
+
+
+
+[.notes]
+--
+* Preview mit JDK14, stabilisiert mit JDK16
+* Native Installerformate für natürliche Installations UX
+--
+
+[%notitle,background-video="jpackagerfast.mp4",background-size="contain",background-color="black"]
+=== Installation packages with `jpackager` [jep]#https://openjdk.java.net/jeps/343[JEP 343]# [jep]#https://openjdk.java.net/jeps/392[JEP 392]#
+
+
+// [.degrade]
+// === Verwendung `jpackage`
+
+// [source.bgap,bash]
+// ----
+// $ jpackage --name myapp --input lib \
+//            --main-jar main.jar --main-class myapp.Main
+// ----
+
+// [col3-l.small]
+// --
+// .Allgemeines
+// [source]
+// ----
+// --app-version <version>
+// --copyright <string>
+// --description <string>
+// --license-file <file>
+// --name <string>
+// --vendor <string>
+// ----
+// --
+
+// [col3-c.small]
+// --
+// .File associations
+// Definition via Propertydatei
+
+// [decent]#Dateiendung, MIME-Typ, Icon, Beschreibung#
+// --
+
+// [col3-r.small]
+// --
+// .Launcher
+// * Default Arguments
+// * JVM Options
+// * Zusätzliche Launcher
+// --
+
+// .Plattform
+// [.decent.x-small]#wie Linux-Menügruppe, Mac Code-Signing, Windows UUID & Shortcut, u.a.#
+
+
+// [.notes]
+// --
+// * Für Windows muss _Wix_ installiert sein
+// --
+
+
+=== `javadoc`
+
+Das Javadoc-Tool hat mit JDK16 umfassende Verbesserungen erfahren…
+
+[.col2s.small.lgap]
+* **Verbesserte Suche**
+* **Fehler zeigen Code-Ausschnitt**
+* Neues/Verbessertes _New_,
+  _Deprecated_, _Related Package_
+* [.decent]#Mobile-friendly Layout#[.decent]#
+* [.decent]#autom. Links zur JDK API#
+* [.decent]#Checks für leere Absätze#
+* [.decent]#Bessere "Typ"-Terminologie#
+* [.decent]#Bessere Darstellung von `@see`, Paketen, Nested Class, u.a.#
+
+
+[%step.col2.small]
+--
+.`{@return …}`-Shortcut
+[source.small,java]
+----
+/** {@return The max value in the array} */
+public static int max(final int... array) {
+----
+[.fragment]
+↓ +
+image:return.png[Javadoc Result,role="plain"]
+--
+
+
+[%notitle,background-video="javadoc.mp4",background-size="contain"]
+=== Javadoc Demo
+
+
+
+
+[.lightbg,background-video= "pexels-pavel-danilyuk-6158064.mp4",options="loop,muted",background-opacity="0.7"]
+== Details & Maintenance
+
+
+[.degrade]
+=== Hilfreiche Nullpointers [jep]#https://openjdk.java.net/jeps/358[JEP 358]# [version]#14#
+
+[source,java]
+----
+class MyClass {
+    record Person(String name, String email) {}
+    public static void main(String[] args) {
+        var p = new Person("Peter", null);                   <1>
+        var e = p.email().toLowerCase();
+    }
+}
+----
+
+[source,text,subs="none"]
+----
+$ java MyClass.java
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke <mark>"String.toLowerCase()</mark> because the return value of <mark>"MyClass$Person.email()" is null</mark>
+        at MyClass.main(MyClass.java:5)
+----
+
+<1> Für Namen von [.step.highlight-current-blue]#_lokalen Variablen_ und _Lambdas_ mit `-g:vars` compilieren!#
+
+[.notes]
+--
+* Erforderte früher `-XX:+ShowCodeDetailsInExceptionMessages`, nun default!
+--
+
+
+[.small.degrade]
+=== „Jahresinspektion“
+
+* **Strongly Encapsulate JDK Internals** [jep]#https://openjdk.java.net/jeps/391[JEP 391]#
+* **macOS/AArch64 Port** [jep]#https://openjdk.java.net/jeps/391[JEP 391]#
+* SecurityManager `forRemoval` [jep]#https://openjdk.java.net/jeps/411[JEP 411]#
+* Always-Strict Floating-Point Semantics [jep]#https://openjdk.java.net/jeps/306[JEP 306]#
+* **Asynchrones _Unified JVM Logging_** (`-Xlog:async`)
+* Ausführlichere Crashs: `-XX:+ExtensiveErrorReports`
+* Unicode 10 → 13; CLDR 33 → 39
+* Krypto: Deprecated Ciphers/Signatures, Enhanced PRNG [jep]#https://openjdk.java.net/jeps/356[JEP 356]#
+
+[.notes]
+--
+* Mit JDK17 `--illegal-access` nicht mehr möglich
+** Motivation: Jigsaw
+** Aber: sun.misc.Unsafe will remain available.
+** Ziel: Druck weiter erhöhen
+* `-XX:+ExtensiveErrorReports` → ausführlichere Crash-`hs_err….log`
+* StrictFPS: Revert JDK 1.2 Change für x87 Coprozessoren
+* Porting the JDK to MacOS/AArch64 → Apple M1.
+* PRNG: Neue Impl. supporten
+--
+
+
+
+[.lightbg,background-video= "pexels-koolshooters-6909829.mp4",options="loop,muted",background-opacity="1"]
+== GraalVM
+
+
+[%notitle,background-image="graalvm-architecture.png",background-size="contain"]
+=== Project Metropolis
+
+[.notes]
+--
+* Polyglot VM
+* In Java geschrieben VM die auf div. Sprachen zielt
+* gemeinnsame Runtime → multiple language with zero overhead
+* Kann mit LLVM native images produzieren
+--
+
+[.left]
+=== GraalVM -- Polyglot VM
+[.col2]
+--
+* *Ahead-of Time compiler* [verydecent]#(AoT)#
+* Polyglotte VM für _div. Sprachen_ +
+→ **JVM**  [decent]#(Java, Kotlin, Scala, …)# +
+→ **LLVM** [decent]#(C, C++) → native# +
+→ **Java** [decent]#Script, Python, Ruby, R#
+--
+
+[.col2]
+--
+* Sprachen **sharen Runtime** +
+  [.decent]#→ Zero Interop Overhead#
+* *Native executables* _(SubstrateVM_) +
+  [.decent]#→ Kleiner Startup & Memory#
+* [.decent]#GraalVM Community & Enterprise# +
+  {sp} +
+  {sp}
+--
+
+[.clear.tgap.fragment]
+--
+.Microservice Frameworks
+_Helidon, Quarkus.io, Micronaut, Spring Fu, Ktor, …_ +
+[.verydecent.x-small]#→ zielen auf GraalVM AoT & Microservices, z.B. via IoC zur Compiletime#
+--
+
+[.notes]
+--
+. Fokus: AoT
+. Mehrteilig:
+* Graal VM & Substrate VM as runtime
+. Benefits
+* AoT → schnellere Startzeiten vs. JIT
+* Native Images → kleinere Startup/Memory → Container
+* Limitations: Dynamic (Reflection)
+* Beeindruckend: GraalVM ab 21.2 unterstützt ebenfalls JFR
+. Commercial offerings "GraalVM Enterprise"
+. zahlreiche Frameworks zielen auf GraalVM AoT & Microservices
+* z.B. IoC zur Compiletime via APT vs. Laufzeit
+--
+
+
+// == Vielen Dank!
+
+
+// [%notitle, background-image="tweet-jdk-evolving.png"]
+// === Bottom line
+// [.notes]
+// --
+// Oldy, but goldie: Still valid
+// --
+
+
+[.lightbg.stretch,background-video="industrial.mp4",background-video-loop="true",background-opacity="0.6"]
+== Vielen Dank!
+
+[.col3-l.x-small]
+--
+.Tools
+* https://openjdk.java.net/projects/jmc/8/[JDK Flight Mission Control 8]
+* https://www.graalvm.org/[GraalVM]
+* https://jdk.java.net/panama/[Panama EAP Builds (`jextract`)]
+
+.Frameworks
+* https://github.com/quick-perf/quickperf[QuickPerf]
+* https://github.com/moditect/jfrunit[JfrUnit]
+* https://helidon.io/#/[helidon.io]
+* https://micronaut.io/[micronaut.io]
+* https://quarkus.io/[quarkus.io]
+* https://github.com/spring-projects-experimental/spring-fu[Spring Fu]
+* https://ktor.io/[Ktor.io]
+--
+
+
+[.col3-c.x-small]
+--
+.Referenzwerke
+* https://javaalmanac.io/[Java Almanac]
+* https://bestsolution-at.github.io/jfr-doc/[JFR Eventtypen]
+* https://chriswhocodes.com/vm-options-explorer.html[VM Options Explorer]
+* https://docs.oracle.com/en/java/javase/17/gctuning/available-collectors.html[HotSpot Tuning Guide: Available Collectors]
+* https://github.com/sundararajana/panama-jextract-samples[`jextract`-Examples]
+
+.Artikel
+* https://blog.arkey.fr/2021/09/04/a-practical-look-at-jep-412-in-jdk17-with-libsodium/[A practical look at JEP-412]
+* https://docs.oracle.com/en/java/javase/14/vm/class-data-sharing.html[Application Class-Data Sharing]
+* http://www.oracle.com/pls/topic/lookup?ctx=javase14&id=dynamic_CDS_archive[Dynamic CDS Archive]
+* https://blogs.oracle.com/javamagazine/understanding-the-jdks-new-superfast-garbage-collectors[Understanding the JDK’s New fast GCs]
+* https://entwickler.de/java/kurze-pause[Kurze Pause]
+* https://www.youtube.com/watch?v=B8k9QGvPxC0[State of Project Panama]
+--
+
+
+[.col3-r.x-small]
+--
+image:java17-lts-presentation-url.png[https://bentolor.github.io/java17-lts-presentation/] +
+[emphasize]#**Interaktive HTML5 Version +
+mit allen Links & Demovideos**#
+
+{sp} +
+
+icon:twitter[] https://twitter.com/bentolor[*@bentolor*] +
+icon:at[] mailto:ben@tolor.de[] +
+icon:github[] https://github.com/bentolor/java17-lts-presentation[bentolor/java17-lts-presentation]
+
+[.xx-small.decent]
+Proudly made with: 
+https://docs.asciidoctor.org/reveal.js-converter/latest/[`asciidoctor-revealjs`], https://www.pexels.com/[pexels.com Videos] & https://de.freeimages.com/[freeimages.com images]
+
+--
+
+
+[pass]
+++++
+<script src="./live.js"></script>
+++++
