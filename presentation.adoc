@@ -7,10 +7,10 @@
 :revealjs_history: true
 :revealjs_fragmentInURL: true
 //:revealjs_viewDistance: 10
-:revealjs_fragments: false
+:revealjs_fragments: true
 :revealjs_width: 1408
 :revealjs_height: 792
-:revealjs_controls: true
+:revealjs_controls: false
 :revealjs_controlsLayout: edges
 :revealjs_controlsTutorial: true
 :revealjs_slideNumber: c/t
