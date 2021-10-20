@@ -1,4 +1,4 @@
-= Unter der Haube: Deep Dive 4 – Die wichtigsten Neuerungen seit Java 11
+= Unter der Haube: Die wichtigsten Neuerungen aus Java 17 bei Performance, Diagnostik & Tools
 :author: Benjamin Schmid @bentolor <ben@tolor.de>
 :date: 2021-09-14
 :icons: font
@@ -32,15 +32,15 @@
 
 [.notes]
 --
-Vielen Dank Melanie…
+Vielen Dank …!
 
-Ja – hallo & Herzlich Willkommen… ich bin … und TA & Manager R&I bei eXXcellent solutions und dort somit erster Ansprechpartner in allen meth. & tech. Fragestellung. Mein Herz schlägt für die innovative aber zugleich solide Softwareentwicklung Softent im Bereich rund um Java & Web.
+Ja – hallo & Herzlich Willkommen… ich bin … und ich bin ein großer Freund der soliden, qualitativ hochwertigen und lösungsorientierte Softwareentwicklung. Das spiegelt sich auch darin, dass ich lange Jahre in Rollen wir Technology Advisor, Manager R&I und anderen oft erster Ansprechpartner in allen meth. & tech. Fragestellung war und bin. 
 
-Java 17 bringt wirklich **viele** _spannende_ & _solide_ Verbesserungen mit. Daher freue ich mich besonders, dass wir diese dank der LTS-Version diese nun auch breiter unseren Projektpraxis nutzen können.
+Mein Fokus liegt dabei im Bereich rund um Java & Web. Java 17 bringt wirklich **viele** _spannende_ & _solide_ Verbesserungen mit. Daher freue ich mich besonders über Java 17, da wir dank der LTS-Version die vielen spannenden Innovationen nun sicher bald besser in unser aller Projektpraxis nutzen können.
 
-Die vorangegangenen Sessions bei Euch sicher schon einigen Appetit anregen können. _Ich_ freue mich nun, zusammen im vierten Deep-Dive nun ein bisschen den Blick unter die Haube zu wagen!
+In der heutigen Sessions stehten dabei weniger die Sprachfeatures im Vordergrund, sonder der Blick geht ein bisschen Richtung unter dei Haube und Tools. 
 
-… und ich denke die Vorfreude lohnt sich, denn z.B. 3  Dinge die Java 17 LTS unter der Haube mit sich bringt sind…
+… ich denke die Vorfreude auf Java 17 lohnt sich, denn z.B. 3  Dinge die Java 17 unter der Haube mit sich bringt sind…
 --
 
 // [.lightbg, background-image="327-chevy-engine-1542516.jpg",background-opacity="0.9"]
@@ -368,7 +368,7 @@ https://wiki.openjdk.java.net/display/shenandoah
 * ParalellOldGC: Deprecate [jep]#https://openjdk.java.net/jeps/366[JEP 366]# [version]#14#
 * [.step.highlight-current-blue]#CMS: Remove CMS GC# [jep]#https://openjdk.java.net/jeps/363[JEP 363]# [version]#14#
 
-icon:exclamation-triangle[] Many, many, more…
+[.step.highlight-current-blue]#icon:exclamation-triangle[] Many, many, more…#
 --
 
 [.notes]
@@ -1207,7 +1207,7 @@ Das Javadoc-Tool hat mit JDK16 umfassende Verbesserungen erfahren…
 * **Fehler zeigen Code-Ausschnitt**
 * Neues/Verbessertes _New_,
   _Deprecated_, _Related Package_
-* [.decent]#Mobile-friendly Layout#[.decent]#
+* [.decent]#Mobile-friendly Layout#
 * [.decent]#autom. Links zur JDK API#
 * [.decent]#Checks für leere Absätze#
 * [.decent]#Bessere "Typ"-Terminologie#
