@@ -285,7 +285,7 @@ https://wiki.openjdk.java.net/display/shenandoah
 
 | G1
 | Balance
-| Üblicher Default. Überwiegend Nebenläufig. Zielt auf Balance von Durchsatz & Latenz. Außreißer-Pausen bis 250~800ms. Guter Durchsatz. Häppchenweise Pausen an Zeitbudget orientiert.
+| Üblicher Default. Überwiegend Nebenläufig. Zielt auf Balance von Durchsatz & Latenz. Ausreißer-Pausen bis 250~800ms. Guter Durchsatz. Häppchenweise Pausen an Zeitbudget orientiert.
 
 | Shenandoah
 | Latenz
@@ -862,7 +862,7 @@ bildquelle: https://developers.redhat.com/blog/2016/11/03/eclipse-for-jni-develo
 === Motivation Project Panama [preview]#Incubator# [jep]#https://openjdk.java.net/jeps/412[JEP 412]#
 
 Starke Drittbibliotheken (z.B. ML/AI) mit dynamischer Entwicklung +
-[decent]#_Tensorflow_, _OpenSSL_, _libodium_, …#
+[decent]#_Tensorflow_, _OpenSSL_, _libsodium_, …#
 
 [.x-small.fragment.tgap]
 > Introduce an API by which Java programs can interoperate with code and
