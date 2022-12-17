@@ -1,6 +1,6 @@
 = Unter der Haube: Die wichtigsten Neuerungen aus Java 17 bei Performance, Diagnostik & Tools
-:author: Benjamin Schmid @bentolor <ben@tolor.de>
-:date: 2021-09-14
+Benjamin Schmid @bentolor <ben@tolor.de>
+1.0, 2021-09-14
 :icons: font
 :revealjs_customtheme: css/sky.css
 //:revealjs_autoSlide: 5000
